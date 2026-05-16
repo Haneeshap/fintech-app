@@ -22,7 +22,7 @@ const Sell = () => {
 
   const fetchPortfolio = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/portfolio/${user.id}`);
+      const response = await axios.get(`http://localhost:5001/api/portfolio/${user.id}`);
       const holdingData = response.data.holdings?.find(h => h.itemId === parseInt(id));
       setHolding(holdingData);
       if (holdingData) {
@@ -59,7 +59,7 @@ const Sell = () => {
 
     setProcessing(true);
     try {
-      await axios.post(`http://localhost:5000/api/portfolio/${user.id}/sell`, {
+      await axios.post(`http://localhost:5001/api/portfolio/${user.id}/sell`, {
         itemId: parseInt(id),
         quantity
       });

@@ -31,6 +31,41 @@ const mutualFunds = [
   { id: 105, name: 'Kotak Emerging Equity', category: 'Mid Cap', nav: 65.89, returns: { '1Y': 14.2, '3Y': 16.5, '5Y': 13.8 }, type: 'mutual_fund' },
 ];
 
+// Market news data
+const marketNews = [
+  { id: 1, title: 'Reliance Industries hits record high on strong Q4 earnings', category: 'Stocks', timestamp: new Date(Date.now() - 3600000).toISOString(), summary: 'Reliance Industries surged 3.5% after reporting better-than-expected quarterly results driven by retail and telecom segments.' },
+  { id: 2, title: 'RBI maintains repo rate at 6.5%, focuses on inflation', category: 'Economy', timestamp: new Date(Date.now() - 7200000).toISOString(), summary: 'The Reserve Bank of India kept the key interest rate unchanged, signaling continued focus on bringing down inflation to target levels.' },
+  { id: 3, title: 'IT sector faces headwinds amid global slowdown concerns', category: 'Technology', timestamp: new Date(Date.now() - 10800000).toISOString(), summary: 'Major IT stocks declined as investors worry about reduced IT spending by clients in the US and Europe due to economic uncertainties.' },
+  { id: 4, title: 'Small cap funds outperform large caps in Q1', category: 'Mutual Funds', timestamp: new Date(Date.now() - 14400000).toISOString(), summary: 'Small cap mutual funds delivered 18% returns in the first quarter, outperforming large cap funds which returned 12%.' },
+  { id: 5, title: 'Government announces new manufacturing incentives', category: 'Policy', timestamp: new Date(Date.now() - 18000000).toISOString(), summary: 'The government unveiled a production-linked incentive scheme for electronics manufacturing, expected to boost domestic production.' },
+];
+
+// Market indices data
+const marketIndices = [
+  { id: 1, name: 'NIFTY 50', value: 22456.80, change: 125.30, changePercent: 0.56, high: 22500.00, low: 22300.00 },
+  { id: 2, name: 'SENSEX', value: 74234.50, change: 423.20, changePercent: 0.57, high: 74500.00, low: 73800.00 },
+  { id: 3, name: 'NIFTY BANK', value: 47890.30, change: 234.50, changePercent: 0.49, high: 48000.00, low: 47600.00 },
+  { id: 4, name: 'NIFTY IT', value: 34567.80, change: -123.40, changePercent: -0.36, high: 34800.00, low: 34400.00 },
+];
+
+// Dividend data
+const dividends = [
+  { id: 1, stockId: 1, amount: 28, frequency: 'annual', exDate: '2024-06-15', recordDate: '2024-06-17', payoutDate: '2024-07-10' },
+  { id: 2, stockId: 2, amount: 24, frequency: 'annual', exDate: '2024-05-20', recordDate: '2024-05-22', payoutDate: '2024-06-15' },
+  { id: 3, stockId: 4, amount: 16, frequency: 'semi-annual', exDate: '2024-04-10', recordDate: '2024-04-12', payoutDate: '2024-05-05' },
+  { id: 4, stockId: 5, amount: 8, frequency: 'quarterly', exDate: '2024-03-15', recordDate: '2024-03-17', payoutDate: '2024-04-10' },
+  { id: 5, stockId: 6, amount: 12, frequency: 'annual', exDate: '2024-02-20', recordDate: '2024-02-22', payoutDate: '2024-03-15' },
+];
+
+// User dividend tracking
+let userDividends = [];
+
+// Goal-based investing data
+let investmentGoals = [];
+
+// Risk assessment data
+let riskProfiles = [];
+
 // Mock user data
 let users = [];
 let portfolios = [];
@@ -219,6 +254,292 @@ app.delete('/api/watchlist/:userId/remove/:itemId', (req, res) => {
 app.get('/api/transactions/:userId', (req, res) => {
   const userTransactions = transactions.filter(t => t.userId === parseInt(req.params.userId));
   res.json(userTransactions.reverse());
+});
+
+// Market news endpoints
+app.get('/api/news', (req, res) => {
+  const { category } = req.query;
+  if (category) {
+    const filteredNews = marketNews.filter(n => n.category.toLowerCase() === category.toLowerCase());
+    res.json(filteredNews);
+  } else {
+    res.json(marketNews);
+  }
+});
+
+app.get('/api/news/:id', (req, res) => {
+  const newsItem = marketNews.find(n => n.id === parseInt(req.params.id));
+  if (newsItem) {
+    res.json(newsItem);
+  } else {
+    res.status(404).json({ error: 'News item not found' });
+  }
+});
+
+// Market indices endpoints
+app.get('/api/indices', (req, res) => {
+  res.json(marketIndices);
+});
+
+app.get('/api/indices/:id', (req, res) => {
+  const index = marketIndices.find(i => i.id === parseInt(req.params.id));
+  if (index) {
+    res.json(index);
+  } else {
+    res.status(404).json({ error: 'Index not found' });
+  }
+});
+
+// Stock comparison endpoint
+app.post('/api/compare', (req, res) => {
+  const { items } = req.body;
+  const comparisonData = items.map(itemId => {
+    const stock = stocks.find(s => s.id === itemId);
+    const fund = mutualFunds.find(f => f.id === itemId);
+    return stock || fund || null;
+  }).filter(item => item !== null);
+  res.json(comparisonData);
+});
+
+// Price alerts (mock implementation)
+let priceAlerts = [];
+
+app.get('/api/alerts/:userId', (req, res) => {
+  const userAlerts = priceAlerts.filter(a => a.userId === parseInt(req.params.userId));
+  res.json(userAlerts);
+});
+
+app.post('/api/alerts/:userId/add', (req, res) => {
+  const { userId } = req.params;
+  const { type, itemId, targetPrice, condition } = req.body;
+  
+  const itemName = type === 'stock' 
+    ? stocks.find(s => s.id === itemId)?.name 
+    : mutualFunds.find(f => f.id === itemId)?.name;
+  
+  const alert = {
+    id: priceAlerts.length + 1,
+    userId: parseInt(userId),
+    type,
+    itemId,
+    itemName,
+    targetPrice,
+    condition, // 'above' or 'below'
+    currentPrice: type === 'stock' 
+      ? stocks.find(s => s.id === itemId)?.price 
+      : mutualFunds.find(f => f.id === itemId)?.nav,
+    triggered: false,
+    createdAt: new Date().toISOString()
+  };
+  
+  priceAlerts.push(alert);
+  res.json(alert);
+});
+
+app.delete('/api/alerts/:userId/remove/:alertId', (req, res) => {
+  const { userId, alertId } = req.params;
+  priceAlerts = priceAlerts.filter(a => !(a.userId === parseInt(userId) && a.id === parseInt(alertId)));
+  res.json({ message: 'Alert removed successfully' });
+});
+
+// Stock screener endpoint
+app.get('/api/screener', (req, res) => {
+  const { minPrice, maxPrice, minChange, maxChange, type } = req.query;
+  
+  let filteredStocks = [...stocks];
+  let filteredFunds = [...mutualFunds];
+  
+  if (minPrice) {
+    filteredStocks = filteredStocks.filter(s => s.price >= parseFloat(minPrice));
+    filteredFunds = filteredFunds.filter(f => f.nav >= parseFloat(minPrice));
+  }
+  
+  if (maxPrice) {
+    filteredStocks = filteredStocks.filter(s => s.price <= parseFloat(maxPrice));
+    filteredFunds = filteredFunds.filter(f => f.nav <= parseFloat(maxPrice));
+  }
+  
+  if (minChange) {
+    filteredStocks = filteredStocks.filter(s => s.change >= parseFloat(minChange));
+  }
+  
+  if (maxChange) {
+    filteredStocks = filteredStocks.filter(s => s.change <= parseFloat(maxChange));
+  }
+  
+  if (type === 'stock') {
+    return res.json(filteredStocks);
+  } else if (type === 'mutual_fund') {
+    return res.json(filteredFunds);
+  }
+  
+  res.json({
+    stocks: filteredStocks,
+    mutualFunds: filteredFunds
+  });
+});
+
+// Dividend endpoints
+app.get('/api/dividends', (req, res) => {
+  const enrichedDividends = dividends.map(div => {
+    const stock = stocks.find(s => s.id === div.stockId);
+    return {
+      ...div,
+      stockName: stock?.name,
+      stockSymbol: stock?.symbol
+    };
+  });
+  res.json(enrichedDividends);
+});
+
+app.get('/api/dividends/:userId', (req, res) => {
+  const userDividendData = userDividends.filter(d => d.userId === parseInt(req.params.userId));
+  const enrichedData = userDividendData.map(div => {
+    const stock = stocks.find(s => s.id === div.stockId);
+    return {
+      ...div,
+      stockName: stock?.name,
+      stockSymbol: stock?.symbol
+    };
+  });
+  res.json(enrichedData);
+});
+
+app.post('/api/dividends/:userId/track', (req, res) => {
+  const { userId } = req.params;
+  const { stockId } = req.body;
+  
+  const dividend = dividends.find(d => d.stockId === parseInt(stockId));
+  if (!dividend) {
+    return res.status(404).json({ error: 'Dividend data not found for this stock' });
+  }
+  
+  const existingTracking = userDividends.find(d => d.userId === parseInt(userId) && d.stockId === parseInt(stockId));
+  if (existingTracking) {
+    return res.status(400).json({ error: 'Already tracking this stock dividend' });
+  }
+  
+  const tracking = {
+    id: userDividends.length + 1,
+    userId: parseInt(userId),
+    stockId: parseInt(stockId),
+    ...dividend,
+    trackedAt: new Date().toISOString()
+  };
+  
+  userDividends.push(tracking);
+  res.json(tracking);
+});
+
+app.delete('/api/dividends/:userId/untrack/:stockId', (req, res) => {
+  const { userId, stockId } = req.params;
+  userDividends = userDividends.filter(d => !(d.userId === parseInt(userId) && d.stockId === parseInt(stockId)));
+  res.json({ message: 'Dividend tracking removed' });
+});
+
+// Investment goals endpoints
+app.get('/api/goals/:userId', (req, res) => {
+  const userGoals = investmentGoals.filter(g => g.userId === parseInt(req.params.userId));
+  res.json(userGoals);
+});
+
+app.post('/api/goals/:userId/add', (req, res) => {
+  const { userId } = req.params;
+  const { name, targetAmount, currentAmount, targetDate, category } = req.body;
+  
+  const goal = {
+    id: investmentGoals.length + 1,
+    userId: parseInt(userId),
+    name,
+    targetAmount: parseFloat(targetAmount),
+    currentAmount: parseFloat(currentAmount) || 0,
+    targetDate,
+    category,
+    progress: (parseFloat(currentAmount) || 0) / parseFloat(targetAmount) * 100,
+    createdAt: new Date().toISOString()
+  };
+  
+  investmentGoals.push(goal);
+  res.json(goal);
+});
+
+app.put('/api/goals/:userId/update/:goalId', (req, res) => {
+  const { userId, goalId } = req.params;
+  const { currentAmount } = req.body;
+  
+  const goal = investmentGoals.find(g => g.userId === parseInt(userId) && g.id === parseInt(goalId));
+  if (!goal) {
+    return res.status(404).json({ error: 'Goal not found' });
+  }
+  
+  goal.currentAmount = parseFloat(currentAmount);
+  goal.progress = (goal.currentAmount / goal.targetAmount) * 100;
+  
+  res.json(goal);
+});
+
+app.delete('/api/goals/:userId/remove/:goalId', (req, res) => {
+  const { userId, goalId } = req.params;
+  investmentGoals = investmentGoals.filter(g => !(g.userId === parseInt(userId) && g.id === parseInt(goalId)));
+  res.json({ message: 'Goal removed successfully' });
+});
+
+// Risk assessment endpoints
+app.get('/api/risk-profile/:userId', (req, res) => {
+  const userProfile = riskProfiles.find(r => r.userId === parseInt(req.params.userId));
+  if (userProfile) {
+    res.json(userProfile);
+  } else {
+    res.json({ userId: parseInt(req.params.userId), riskLevel: null, score: 0 });
+  }
+});
+
+app.post('/api/risk-profile/:userId/assess', (req, res) => {
+  const { userId } = req.params;
+  const { answers } = req.body;
+  
+  // Calculate risk score based on answers
+  // Each answer is weighted (1-5 scale)
+  let totalScore = 0;
+  const maxScore = answers.length * 5;
+  
+  answers.forEach(answer => {
+    totalScore += answer;
+  });
+  
+  const percentage = (totalScore / maxScore) * 100;
+  
+  let riskLevel;
+  if (percentage < 30) {
+    riskLevel = 'Conservative';
+  } else if (percentage < 50) {
+    riskLevel = 'Moderately Conservative';
+  } else if (percentage < 70) {
+    riskLevel = 'Moderate';
+  } else if (percentage < 85) {
+    riskLevel = 'Moderately Aggressive';
+  } else {
+    riskLevel = 'Aggressive';
+  }
+  
+  const profile = {
+    id: riskProfiles.length + 1,
+    userId: parseInt(userId),
+    riskLevel,
+    score: percentage,
+    answers,
+    assessedAt: new Date().toISOString()
+  };
+  
+  // Update or create profile
+  const existingIndex = riskProfiles.findIndex(r => r.userId === parseInt(userId));
+  if (existingIndex !== -1) {
+    riskProfiles[existingIndex] = profile;
+  } else {
+    riskProfiles.push(profile);
+  }
+  
+  res.json(profile);
 });
 
 app.listen(PORT, () => {

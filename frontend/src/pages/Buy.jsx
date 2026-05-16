@@ -23,7 +23,7 @@ const Buy = () => {
   const fetchItem = async () => {
     try {
       const endpoint = type === 'stock' ? 'stocks' : 'mutual-funds';
-      const response = await axios.get(`http://localhost:5000/api/${endpoint}/${id}`);
+      const response = await axios.get(`http://localhost:5001/api/${endpoint}/${id}`);
       setItem(response.data);
     } catch (error) {
       console.error('Error fetching item:', error);
@@ -57,7 +57,7 @@ const Buy = () => {
     setProcessing(true);
     try {
       const price = type === 'stock' ? item.price : item.nav;
-      await axios.post(`http://localhost:5000/api/portfolio/${user.id}/buy`, {
+      await axios.post(`http://localhost:5001/api/portfolio/${user.id}/buy`, {
         type,
         itemId: parseInt(id),
         quantity,

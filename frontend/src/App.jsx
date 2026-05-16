@@ -10,6 +10,14 @@ import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import KYC from './pages/KYC';
 import SIP from './pages/SIP';
+import News from './pages/News';
+import MarketIndices from './pages/MarketIndices';
+import Compare from './pages/Compare';
+import Alerts from './pages/Alerts';
+import Screener from './pages/Screener';
+import Dividends from './pages/Dividends';
+import Goals from './pages/Goals';
+import RiskAssessment from './pages/RiskAssessment';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -83,6 +91,70 @@ function App() {
           element={
             <ProtectedRoute>
               <SIP />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/news" 
+          element={
+            <ProtectedRoute>
+              <News />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/indices" 
+          element={
+            <ProtectedRoute>
+              <MarketIndices />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/compare" 
+          element={
+            <ProtectedRoute>
+              <Compare />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/alerts" 
+          element={
+            <ProtectedRoute>
+              <Alerts />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/screener" 
+          element={
+            <ProtectedRoute>
+              <Screener />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dividends" 
+          element={
+            <ProtectedRoute>
+              <Dividends />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/goals" 
+          element={
+            <ProtectedRoute>
+              <Goals />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/risk-assessment" 
+          element={
+            <ProtectedRoute>
+              <RiskAssessment />
             </ProtectedRoute>
           } 
         />

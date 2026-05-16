@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Wallet, PieChart, ArrowUpRight, ArrowDownRight, Search, Star, LogOut, Home, BarChart3, Heart, History, LineChart, User, Calendar } from 'lucide-react';
+import { TrendingUp, Wallet, PieChart, ArrowUpRight, ArrowDownRight, Search, Star, LogOut, Home, BarChart3, Heart, History, LineChart, User, Calendar, Newspaper, Activity, GitCompare, Bell, SlidersHorizontal, DollarSign, Target, Shield } from 'lucide-react';
 import axios from 'axios';
 
 const Dashboard = () => {
@@ -26,10 +26,10 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [portfolioRes, stocksRes, fundsRes, watchlistRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/portfolio/${user.id}`),
-        axios.get('http://localhost:5000/api/stocks'),
-        axios.get('http://localhost:5000/api/mutual-funds'),
-        axios.get(`http://localhost:5000/api/watchlist/${user.id}`)
+        axios.get(`http://localhost:5001/api/portfolio/${user.id}`),
+        axios.get('http://localhost:5001/api/stocks'),
+        axios.get('http://localhost:5001/api/mutual-funds'),
+        axios.get(`http://localhost:5001/api/watchlist/${user.id}`)
       ]);
       setPortfolio(portfolioRes.data);
       setStocks(stocksRes.data);
@@ -49,7 +49,7 @@ const Dashboard = () => {
 
   const addToWatchlist = async (type, itemId) => {
     try {
-      await axios.post(`http://localhost:5000/api/watchlist/${user.id}/add`, { type, itemId });
+      await axios.post(`http://localhost:5001/api/watchlist/${user.id}/add`, { type, itemId });
       fetchData();
     } catch (error) {
       console.error('Error adding to watchlist:', error);
@@ -58,7 +58,7 @@ const Dashboard = () => {
 
   const removeFromWatchlist = async (itemId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/watchlist/${user.id}/remove/${itemId}`);
+      await axios.delete(`http://localhost:5001/api/watchlist/${user.id}/remove/${itemId}`);
       fetchData();
     } catch (error) {
       console.error('Error removing from watchlist:', error);
@@ -174,6 +174,78 @@ const Dashboard = () => {
             >
               <LineChart className="w-5 h-5" />
               Analytics
+            </button>
+            <button
+              onClick={() => navigate('/news')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'news' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Newspaper className="w-5 h-5" />
+              News
+            </button>
+            <button
+              onClick={() => navigate('/indices')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'indices' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Activity className="w-5 h-5" />
+              Indices
+            </button>
+            <button
+              onClick={() => navigate('/compare')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'compare' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <GitCompare className="w-5 h-5" />
+              Compare
+            </button>
+            <button
+              onClick={() => navigate('/alerts')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'alerts' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Bell className="w-5 h-5" />
+              Alerts
+            </button>
+            <button
+              onClick={() => navigate('/screener')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'screener' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              Screener
+            </button>
+            <button
+              onClick={() => navigate('/dividends')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'dividends' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <DollarSign className="w-5 h-5" />
+              Dividends
+            </button>
+            <button
+              onClick={() => navigate('/goals')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'goals' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Target className="w-5 h-5" />
+              Goals
+            </button>
+            <button
+              onClick={() => navigate('/risk-assessment')}
+              className={`flex items-center gap-2 px-4 py-4 border-b-2 transition ${
+                activeTab === 'risk-assessment' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Shield className="w-5 h-5" />
+              Risk Profile
             </button>
           </div>
         </div>

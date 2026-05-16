@@ -21,7 +21,7 @@ const TransactionHistory = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/transactions/${user.id}`);
+      const response = await axios.get(`http://localhost:5001/api/transactions/${user.id}`);
       setTransactions(response.data);
     } catch (error) {
       console.error('Error fetching transactions:', error);

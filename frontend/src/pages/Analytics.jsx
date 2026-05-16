@@ -27,10 +27,10 @@ const Analytics = () => {
   const fetchData = async () => {
     try {
       const [portfolioRes, stocksRes, fundsRes, transactionsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/portfolio/${user.id}`),
-        axios.get('http://localhost:5000/api/stocks'),
-        axios.get('http://localhost:5000/api/mutual-funds'),
-        axios.get(`http://localhost:5000/api/transactions/${user.id}`)
+        axios.get(`http://localhost:5001/api/portfolio/${user.id}`),
+        axios.get('http://localhost:5001/api/stocks'),
+        axios.get('http://localhost:5001/api/mutual-funds'),
+        axios.get(`http://localhost:5001/api/transactions/${user.id}`)
       ]);
       setPortfolio(portfolioRes.data);
       setStocks(stocksRes.data);

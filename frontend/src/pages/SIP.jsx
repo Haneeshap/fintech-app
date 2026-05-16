@@ -33,7 +33,7 @@ const SIP = () => {
 
   const fetchFund = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/mutual-funds/${id}`);
+      const response = await axios.get(`http://localhost:5001/api/mutual-funds/${id}`);
       setFund(response.data);
       // Set default start date to next month
       const nextMonth = new Date();
