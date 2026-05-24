@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Plus, Trash2, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Bell, Plus, Trash2, TrendingUp, TrendingDown, AlertTriangle, History, BarChart3, Target, Clock, CheckCircle } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const Alerts = () => {
   const { user } = useAuth();
@@ -13,9 +14,11 @@ const Alerts = () => {
     type: 'stock',
     itemId: '',
     targetPrice: '',
-    condition: 'above'
+    condition: 'above',
+    alertType: 'price'
   });
   const [loading, setLoading] = useState(true);
+  const [notificationHistory, setNotificationHistory] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -88,6 +91,37 @@ const Alerts = () => {
     }
   };
 
+  const getPriceDistance = (alert) => {
+    const currentPrice = alert.currentPrice;
+    const targetPrice = alert.targetPrice;
+    const distance = Math.abs((targetPrice - currentPrice) / currentPrice * 100);
+    return distance.toFixed(2);
+  };
+
+  const getAlertStatistics = () => {
+    const total = alerts.length;
+    const triggered = alerts.filter(a => checkAlertTriggered(a)).length;
+    const above = alerts.filter(a => a.condition === 'above').length;
+    const below = alerts.filter(a => a.condition === 'below').length;
+    
+    return [
+      { name: 'Active', value: total - triggered },
+      { name: 'Triggered', value: triggered }
+    ];
+  };
+
+  const getAlertTypeDistribution = () => {
+    const stocks = alerts.filter(a => a.type === 'stock').length;
+    const funds = alerts.filter(a => a.type === 'mutual_fund').length;
+    
+    return [
+      { name: 'Stocks', value: stocks },
+      { name: 'Mutual Funds', value: funds }
+    ];
+  };
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -115,6 +149,115 @@ const Alerts = () => {
             Add Alert
           </button>
         </div>
+
+        {/* Alert Statistics */}
+        {alerts.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Bell className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Alerts</p>
+                  <p className="text-2xl font-bold text-gray-900">{alerts.length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <Target className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Active</p>
+                  <p className="text-2xl font-bold text-gray-900">{alerts.filter(a => !checkAlertTriggered(a)).length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Triggered</p>
+                  <p className="text-2xl font-bold text-gray-900">{alerts.filter(a => checkAlertTriggered(a)).length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Above Target</p>
+                  <p className="text-2xl font-bold text-gray-900">{alerts.filter(a => a.condition === 'above').length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Alert Analytics */}
+        {alerts.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Alert Status Distribution */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Alert Status</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <RechartsPieChart>
+                  <Pie
+                    data={getAlertStatistics()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {getAlertStatistics().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Alert Type Distribution */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Target className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Alert Types</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <RechartsPieChart>
+                  <Pie
+                    data={getAlertTypeDistribution()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {getAlertTypeDistribution().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Add Alert Form */}
         {showAddForm && (
@@ -232,6 +375,18 @@ const Alerts = () => {
                           <p className="text-xs text-gray-500">Target Price</p>
                           <p className="text-lg font-bold text-gray-900">₹{alert.targetPrice.toFixed(2)}</p>
                         </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Clock className="w-4 h-4" />
+                          <span>Distance: {getPriceDistance(alert)}%</span>
+                        </div>
+                        {!checkAlertTriggered(alert) && (
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <Target className="w-4 h-4" />
+                            <span>{alert.condition === 'above' ? 'Waiting for rise' : 'Waiting for fall'}</span>
+                          </div>
+                        )}
                       </div>
                       {checkAlertTriggered(alert) && (
                         <div className="mt-3 flex items-center gap-2 text-green-600">

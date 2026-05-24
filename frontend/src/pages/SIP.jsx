@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, TrendingUp, Calculator, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, Calculator, CheckCircle, Info, LineChart, Zap } from 'lucide-react';
 import axios from 'axios';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
 
 const SIP = () => {
   const { user } = useAuth();
@@ -17,7 +18,9 @@ const SIP = () => {
     amount: 500,
     frequency: 'monthly',
     startDate: '',
-    duration: 12
+    duration: 12,
+    stepUp: false,
+    stepUpPercentage: 10
   });
   
   const [error, setError] = useState('');
@@ -52,14 +55,42 @@ const SIP = () => {
     const duration = sipData.duration; // in months
     const expectedReturn = fund?.returns['1Y'] / 100 / 12; // monthly return rate
     
-    const totalInvestment = monthlyAmount * duration;
-    const futureValue = monthlyAmount * ((Math.pow(1 + expectedReturn, duration) - 1) / expectedReturn) * (1 + expectedReturn);
+    let totalInvestment = 0;
+    let futureValue = 0;
+    const projectionData = [];
+    
+    for (let month = 1; month <= duration; month++) {
+      let currentAmount = monthlyAmount;
+      
+      // Apply step-up if enabled
+      if (sipData.stepUp && month > 1 && month % 12 === 0) {
+        const yearsPassed = Math.floor(month / 12);
+        currentAmount = monthlyAmount * Math.pow(1 + sipData.stepUpPercentage / 100, yearsPassed);
+      }
+      
+      totalInvestment += currentAmount;
+      futureValue = (futureValue + currentAmount) * (1 + expectedReturn);
+      
+      projectionData.push({
+        month: `Month ${month}`,
+        investment: totalInvestment,
+        value: futureValue
+      });
+    }
+    
     const estimatedReturns = futureValue - totalInvestment;
+    
+    // Calculate lumpsum comparison
+    const lumpsumAmount = monthlyAmount * duration;
+    const lumpsumValue = lumpsumAmount * Math.pow(1 + expectedReturn, duration);
     
     return {
       totalInvestment,
       futureValue,
-      estimatedReturns
+      estimatedReturns,
+      projectionData,
+      lumpsumValue,
+      lumpsumReturns: lumpsumValue - lumpsumAmount
     };
   };
 
@@ -142,52 +173,52 @@ const SIP = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-white">
+      <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
+          <div className="flex items-center h-14">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition text-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
               Back
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Set up SIP</h1>
-          <p className="text-gray-600 mt-2">Systematic Investment Plan for {fund?.name}</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Set up SIP</h1>
+          <p className="text-sm text-gray-500 mt-1">Systematic Investment Plan for {fund?.name}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* SIP Form */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-teal-600 p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-8 h-8 text-white" />
+            <div className="bg-green-600 p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{fund?.name}</h2>
-                  <p className="text-white/80">{fund?.category}</p>
+                  <h2 className="text-lg font-bold text-white">{fund?.name}</h2>
+                  <p className="text-white/80 text-sm">{fund?.category}</p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-5 space-y-5">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               <form onSubmit={handleSubmit}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1 uppercase tracking-wide">
                     SIP Amount (₹)
                   </label>
                   <input
@@ -197,22 +228,22 @@ const SIP = () => {
                     step="500"
                     value={sipData.amount}
                     onChange={(e) => setSipData({ ...sipData, amount: parseInt(e.target.value) || 500 })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none ${
-                      fieldError ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm ${
+                      fieldError ? 'border-red-500' : 'border-gray-200'
                     }`}
                   />
-                  <p className="text-sm text-gray-500 mt-1">Min: ₹500 | Max: ₹1,00,000</p>
-                  {fieldError && <p className="text-red-600 text-sm mt-1">{fieldError}</p>}
+                  <p className="text-xs text-gray-500 mt-1">Min: ₹500 | Max: ₹1,00,000</p>
+                  {fieldError && <p className="text-red-600 text-xs mt-1">{fieldError}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1 uppercase tracking-wide">
                     Frequency
                   </label>
                   <select
                     value={sipData.frequency}
                     onChange={(e) => setSipData({ ...sipData, frequency: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
                   >
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
@@ -220,19 +251,19 @@ const SIP = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1 uppercase tracking-wide">
                     Start Date
                   </label>
                   <input
                     type="date"
                     value={sipData.startDate}
                     onChange={(e) => setSipData({ ...sipData, startDate: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1 uppercase tracking-wide">
                     Duration (months)
                   </label>
                   <input
@@ -241,15 +272,45 @@ const SIP = () => {
                     max="360"
                     value={sipData.duration}
                     onChange={(e) => setSipData({ ...sipData, duration: parseInt(e.target.value) || 12 })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Max: 360 months (30 years)</p>
+                  <p className="text-xs text-gray-500 mt-1">Max: 360 months (30 years)</p>
                 </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="stepUp"
+                    checked={sipData.stepUp}
+                    onChange={(e) => setSipData({ ...sipData, stepUp: e.target.checked })}
+                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                  />
+                  <label htmlFor="stepUp" className="text-sm font-medium text-gray-700">
+                    Enable Step-up SIP
+                  </label>
+                </div>
+
+                {sipData.stepUp && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1 uppercase tracking-wide">
+                      Annual Step-up (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={sipData.stepUpPercentage}
+                      onChange={(e) => setSipData({ ...sipData, stepUpPercentage: parseInt(e.target.value) || 10 })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Increase SIP amount annually by this %</p>
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                 >
                   {processing ? 'Creating SIP...' : 'Create SIP'}
                   {!processing && <TrendingUp className="w-5 h-5" />}
@@ -269,7 +330,7 @@ const SIP = () => {
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-sm text-gray-600">Total Investment</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{returns.totalInvestment.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{returns.totalInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                 </div>
 
                 <div className="bg-green-50 rounded-xl p-4">
@@ -283,6 +344,69 @@ const SIP = () => {
                 </div>
               </div>
             </div>
+
+            {/* Projection Chart */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <LineChart className="w-6 h-6 text-green-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Growth Projection</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={returns.projectionData.slice(0, Math.min(returns.projectionData.length, 24))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="#6b7280"
+                    tickFormatter={(value) => value.replace('Month ', '')}
+                  />
+                  <YAxis stroke="#6b7280" tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`} />
+                  <Tooltip 
+                    formatter={(value) => `₹${value.toFixed(0)}`}
+                    contentStyle={{ 
+                      backgroundColor: '#ffffff', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                  <Legend />
+                  <Area 
+                    type="monotone" 
+                    dataKey="investment" 
+                    stackId="1"
+                    stroke="#3B82F6" 
+                    fill="#3B82F6"
+                    fillOpacity={0.3}
+                    name="Invested Amount"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stackId="2"
+                    stroke="#10B981" 
+                    fill="#10B981"
+                    fillOpacity={0.3}
+                    name="Portfolio Value"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Step-up Benefits */}
+            {sipData.stepUp && (
+              <div className="bg-gradient-to-r from-green-50 to-teal-50 border border-green-200 rounded-xl p-6">
+                <div className="flex items-start gap-3">
+                  <Zap className="w-6 h-6 text-green-600 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-green-900 mb-2">Step-up SIP Benefits</h4>
+                    <p className="text-sm text-green-700">
+                      By increasing your SIP by {sipData.stepUpPercentage}% annually, you could potentially earn 
+                      <span className="font-bold"> significantly higher returns</span> over time due to the power of compounding on larger investments.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-start gap-3">

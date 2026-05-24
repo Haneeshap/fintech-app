@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Target, Plus, Trash2, TrendingUp, Calendar, DollarSign, Edit2, CheckCircle } from 'lucide-react';
+import { Target, Plus, Trash2, TrendingUp, Calendar, DollarSign, Edit2, CheckCircle, PieChart, BarChart3, AlertCircle, Star } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const Goals = () => {
   const { user } = useAuth();
@@ -108,6 +109,36 @@ const Goals = () => {
     return goals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   };
 
+  const getGoalDistributionData = () => {
+    return goals.map(goal => ({
+      name: goal.name,
+      value: goal.currentAmount,
+      target: goal.targetAmount
+    }));
+  };
+
+  const getMonthlyContributionSuggestion = (goal) => {
+    const daysRemaining = getDaysRemaining(goal.targetDate);
+    if (daysRemaining <= 0) return 0;
+    const remainingAmount = goal.targetAmount - goal.currentAmount;
+    const monthsRemaining = Math.ceil(daysRemaining / 30);
+    return Math.ceil(remainingAmount / monthsRemaining);
+  };
+
+  const getPriorityScore = (goal) => {
+    const daysRemaining = getDaysRemaining(goal.targetDate);
+    const progress = goal.progress;
+    const urgency = daysRemaining <= 365 ? 2 : daysRemaining <= 1825 ? 1 : 0;
+    const behindSchedule = progress < (1 - daysRemaining / 3650) * 100 ? 1 : 0;
+    return urgency + behindSchedule;
+  };
+
+  const getSortedGoals = () => {
+    return [...goals].sort((a, b) => getPriorityScore(b) - getPriorityScore(a));
+  };
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -183,6 +214,55 @@ const Goals = () => {
             </div>
           </div>
         </div>
+
+        {/* Goals Analytics */}
+        {goals.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Goal Distribution */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <PieChart className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Goal Distribution</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
+                  <Pie
+                    data={getGoalDistributionData()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {getGoalDistributionData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Monthly Contribution Suggestions */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Monthly Contribution Suggestions</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={goals.map(g => ({ name: g.name, amount: getMonthlyContributionSuggestion(g) }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" tickFormatter={(value) => `₹${value}`} />
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+                  <Bar dataKey="amount" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Add Goal Form */}
         {showAddForm && (
@@ -269,13 +349,16 @@ const Goals = () => {
               <p className="text-gray-600">No investment goals yet. Create your first goal to get started!</p>
             </div>
           ) : (
-            goals.map((goal) => {
+            getSortedGoals().map((goal) => {
               const categoryInfo = getCategoryInfo(goal.category);
               const daysRemaining = getDaysRemaining(goal.targetDate);
               const isCompleted = goal.progress >= 100;
+              const priorityScore = getPriorityScore(goal);
+              const monthlySuggestion = getMonthlyContributionSuggestion(goal);
+              const isHighPriority = priorityScore >= 2;
               
               return (
-                <div key={goal.id} className="bg-white rounded-xl shadow-md p-6">
+                <div key={goal.id} className={`bg-white rounded-xl shadow-md p-6 ${isHighPriority ? 'ring-2 ring-orange-400' : ''}`}>
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -283,6 +366,12 @@ const Goals = () => {
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryInfo.color}`}>
                           {categoryInfo.name}
                         </span>
+                        {isHighPriority && (
+                          <span className="flex items-center gap-1 text-orange-600 text-sm font-medium bg-orange-50 px-2 py-1 rounded">
+                            <Star className="w-4 h-4" />
+                            High Priority
+                          </span>
+                        )}
                         {isCompleted && (
                           <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
                             <CheckCircle className="w-4 h-4" />
@@ -344,6 +433,19 @@ const Goals = () => {
                       <p className="text-2xl font-bold text-gray-900">₹{goal.targetAmount.toLocaleString()}</p>
                     </div>
                   </div>
+
+                  {/* Monthly Suggestion */}
+                  {!isCompleted && monthlySuggestion > 0 && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Monthly Contribution Suggestion</p>
+                          <p className="text-lg font-bold text-blue-700">₹{monthlySuggestion.toLocaleString()}/month</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Edit Form */}
                   {editingGoal === goal.id && (

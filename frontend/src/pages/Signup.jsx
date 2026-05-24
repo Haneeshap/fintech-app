@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { TrendingUp, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle2, GitFork, Globe, Check } from 'lucide-react';
 
 const Signup = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -31,14 +35,20 @@ const Signup = () => {
     
     if (!password) {
       errors.password = 'Password is required';
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      errors.password = 'Password must contain uppercase, lowercase, and number';
     }
     
     if (!confirmPassword) {
       errors.confirmPassword = 'Please confirm your password';
     } else if (password !== confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    if (!agreeTerms) {
+      errors.agreeTerms = 'You must agree to the terms and conditions';
     }
     
     setFieldErrors(errors);
@@ -66,8 +76,11 @@ const Signup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        login(data.user, 'mock-token');
-        navigate('/dashboard');
+        setSuccess(true);
+        setTimeout(() => {
+          login(data.user, 'mock-token');
+          navigate('/dashboard');
+        }, 1000);
       } else {
         setError(data.error || 'Signup failed');
       }
@@ -78,23 +91,73 @@ const Signup = () => {
     }
   };
 
+  const handleSocialLogin = (provider) => {
+    // Mock social login - in production, this would integrate with OAuth
+    alert(`${provider} signup would be implemented with OAuth`);
+  };
+
+  
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return 0;
+    let strength = 0;
+    if (pwd.length >= 8) strength += 25;
+    if (pwd.length >= 12) strength += 25;
+    if (/[A-Z]/.test(pwd)) strength += 25;
+    if (/[0-9]/.test(pwd)) strength += 25;
+    return strength;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-fade-in">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
               <TrendingUp className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
             <p className="text-gray-600 mt-2">Start your investment journey today</p>
           </div>
 
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2 animate-fade-in">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>Account created successfully! Redirecting...</span>
+            </div>
+          )}
+
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 animate-fade-in">
               {error}
             </div>
           )}
+
+          {/* Social Login Options */}
+          <div className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1 h-px bg-gray-300"></div>
+              <span className="text-sm text-gray-500">Or continue with</span>
+              <div className="flex-1 h-px bg-gray-300"></div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('Google')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              >
+                <Globe className="w-5 h-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Google</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('GitHub')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              >
+                <GitFork className="w-5 h-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">GitHub</span>
+              </button>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -107,15 +170,18 @@ const Signup = () => {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    fieldErrors.name ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+                    fieldErrors.name ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
                   }`}
                   placeholder="John Doe"
                   required
                 />
               </div>
               {fieldErrors.name && (
-                <p className="text-red-600 text-sm mt-1">{fieldErrors.name}</p>
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {fieldErrors.name}
+                </p>
               )}
             </div>
 
@@ -129,15 +195,18 @@ const Signup = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    fieldErrors.email ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+                    fieldErrors.email ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
                   }`}
                   placeholder="you@example.com"
                   required
                 />
               </div>
               {fieldErrors.email && (
-                <p className="text-red-600 text-sm mt-1">{fieldErrors.email}</p>
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {fieldErrors.email}
+                </p>
               )}
             </div>
 
@@ -148,18 +217,55 @@ const Signup = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    fieldErrors.password ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+                    fieldErrors.password ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
                   }`}
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-red-600 text-sm mt-1">{fieldErrors.password}</p>
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {fieldErrors.password}
+                </p>
+              )}
+              {password && (
+                <div className="mt-2">
+                  <div className="flex gap-1 mb-1">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full ${
+                          getPasswordStrength(password) >= i * 25
+                            ? getPasswordStrength(password) >= 75
+                              ? 'bg-green-500'
+                              : getPasswordStrength(password) >= 50
+                              ? 'bg-yellow-500'
+                              : 'bg-orange-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {getPasswordStrength(password) >= 75
+                      ? 'Strong password'
+                      : getPasswordStrength(password) >= 50
+                      ? 'Medium password'
+                      : 'Weak password'}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -170,35 +276,88 @@ const Signup = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    fieldErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+                    fieldErrors.confirmPassword ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
                   }`}
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
               {fieldErrors.confirmPassword && (
-                <p className="text-red-600 text-sm mt-1">{fieldErrors.confirmPassword}</p>
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
+              {confirmPassword && password === confirmPassword && (
+                <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
+                  <Check className="w-4 h-4" />
+                  Passwords match
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 mt-0.5"
+                />
+                <span className="text-sm text-gray-600">
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-blue-600 hover:underline">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>
+                </span>
+              </label>
+              {fieldErrors.agreeTerms && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {fieldErrors.agreeTerms}
+                </p>
               )}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={loading || success}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
-              {!loading && <ArrowRight className="w-5 h-5" />}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating account...
+                </>
+              ) : success ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  Success!
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline">
                 Sign in
               </Link>
             </p>

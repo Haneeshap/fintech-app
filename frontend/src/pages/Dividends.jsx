@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { DollarSign, Calendar, TrendingUp, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, Calendar, TrendingUp, Plus, Trash2, CheckCircle, Clock, PieChart, Calculator, ArrowUpRight, Target } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const Dividends = () => {
   const { user } = useAuth();
@@ -84,6 +85,57 @@ const Dividends = () => {
     }
   };
 
+  const calculateDividendYield = (dividend) => {
+    const stock = stocks.find(s => s.id === dividend.stockId);
+    if (!stock || !stock.price) return 0;
+    const annualDividend = dividend.amount * getFrequencyMultiplier(dividend.frequency);
+    return ((annualDividend / stock.price) * 100).toFixed(2);
+  };
+
+  const getFrequencyMultiplier = (frequency) => {
+    switch (frequency) {
+      case 'quarterly':
+        return 4;
+      case 'semi-annual':
+        return 2;
+      case 'annual':
+        return 1;
+      default:
+        return 1;
+    }
+  };
+
+  const calculateAnnualDividendIncome = () => {
+    return userDividends.reduce((total, dividend) => {
+      const annualAmount = dividend.amount * getFrequencyMultiplier(dividend.frequency);
+      return total + annualAmount;
+    }, 0);
+  };
+
+  const getDividendYieldData = () => {
+    return userDividends.map(dividend => ({
+      name: dividend.stockSymbol,
+      yield: parseFloat(calculateDividendYield(dividend)),
+      amount: dividend.amount * getFrequencyMultiplier(dividend.frequency)
+    })).sort((a, b) => b.yield - a.yield);
+  };
+
+  const getMonthlyDividendProjection = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months.map(month => {
+      const monthlyIncome = userDividends.reduce((total, dividend) => {
+        const payoutMonth = new Date(dividend.payoutDate).toLocaleString('en-IN', { month: 'short' });
+        if (payoutMonth === month) {
+          return total + dividend.amount;
+        }
+        return total;
+      }, 0);
+      return { month, income: monthlyIncome };
+    });
+  };
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -104,7 +156,7 @@ const Dividends = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -132,15 +184,79 @@ const Dividends = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-purple-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <Calculator className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Available</p>
-                <p className="text-2xl font-bold text-gray-900">{allDividends.length}</p>
+                <p className="text-sm text-gray-600">Annual Income</p>
+                <p className="text-2xl font-bold text-gray-900">₹{calculateAnnualDividendIncome().toFixed(0)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Target className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Avg Yield</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {userDividends.length > 0 
+                    ? (getDividendYieldData().reduce((sum, d) => sum + d.yield, 0) / userDividends.length).toFixed(2) 
+                    : '0'}%
+                </p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Dividend Analytics */}
+        {userDividends.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Dividend Yield Chart */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <PieChart className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Dividend Yield Distribution</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
+                  <Pie
+                    data={getDividendYieldData()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, yield: yieldVal }) => `${name}: ${yieldVal}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="yield"
+                  >
+                    {getDividendYieldData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Monthly Projection */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Monthly Dividend Projection</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getMonthlyDividendProjection()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" tickFormatter={(value) => `₹${value}`} />
+                  <Tooltip formatter={(value) => `₹${value.toFixed(2)}`} />
+                  <Bar dataKey="income" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Your Tracked Dividends */}
         <div className="mb-8">
@@ -173,6 +289,10 @@ const Dividends = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Amount</span>
                         <span className="text-lg font-bold text-green-600">₹{dividend.amount}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Yield</span>
+                        <span className="text-sm font-bold text-blue-600">{calculateDividendYield(dividend)}%</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Frequency</span>

@@ -18,6 +18,16 @@ import Screener from './pages/Screener';
 import Dividends from './pages/Dividends';
 import Goals from './pages/Goals';
 import RiskAssessment from './pages/RiskAssessment';
+import Calculator from './pages/Calculator';
+import Rebalancing from './pages/Rebalancing';
+import TaxCalculator from './pages/TaxCalculator';
+import MarketSentiment from './pages/MarketSentiment';
+import Diversification from './pages/Diversification';
+import Benchmarking from './pages/Benchmarking';
+import LearningCenter from './pages/LearningCenter';
+import AdvancedCharting from './pages/AdvancedCharting';
+import Reports from './pages/Reports';
+import RiskManagement from './pages/RiskManagement';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -25,6 +35,7 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  console.log('App component rendering');
   return (
     <Router>
       <Routes>
@@ -155,6 +166,86 @@ function App() {
           element={
             <ProtectedRoute>
               <RiskAssessment />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/calculator" 
+          element={
+            <ProtectedRoute>
+              <Calculator />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/rebalancing" 
+          element={
+            <ProtectedRoute>
+              <Rebalancing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tax-calculator" 
+          element={
+            <ProtectedRoute>
+              <TaxCalculator />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/market-sentiment" 
+          element={
+            <ProtectedRoute>
+              <MarketSentiment />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/diversification" 
+          element={
+            <ProtectedRoute>
+              <Diversification />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/benchmarking" 
+          element={
+            <ProtectedRoute>
+              <Benchmarking />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/learning-center" 
+          element={
+            <ProtectedRoute>
+              <LearningCenter />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/advanced-charting" 
+          element={
+            <ProtectedRoute>
+              <AdvancedCharting />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/risk-management" 
+          element={
+            <ProtectedRoute>
+              <RiskManagement />
             </ProtectedRoute>
           } 
         />
